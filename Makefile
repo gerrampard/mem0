@@ -12,7 +12,7 @@ install:
 
 install_all:
 	poetry install
-	poetry run pip install groq together boto3 litellm
+	poetry run pip install groq together boto3 litellm ollama
 
 # Format code with ruff
 format:
@@ -39,4 +39,4 @@ clean:
 	poetry run rm -rf dist
 
 test:
-	poetry run pytest
+	poetry run pytest tests
