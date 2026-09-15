@@ -1,34 +1,78 @@
 from abc import ABC
-from typing import Optional
+from typing import Dict, Optional, Union
+
+from mem0.utils.http import build_http_client
+
 
 class BaseLlmConfig(ABC):
     """
-    Config for LLMs.
+    Base configuration for LLMs with only common parameters.
+    Provider-specific configurations should be handled by separate config classes.
+
+    This class contains only the parameters that are common across all LLM providers.
+    For provider-specific parameters, use the appropriate provider config class.
     """
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        temperature: float = 0,
-        max_tokens: int = 3000,
-        top_p: float = 1
+        model: Optional[Union[str, Dict]] = None,
+        temperature: float = 0.1,
+        api_key: Optional[str] = None,
+        max_tokens: int = 2000,
+        top_p: float = 0.1,
+        top_k: int = 1,
+        enable_vision: bool = False,
+        vision_details: Optional[str] = "auto",
+        reasoning_effort: Optional[str] = None,
+        http_client_proxies: Optional[Union[Dict, str]] = None,
+        is_reasoning_model: Optional[bool] = None,
     ):
         """
-        Initializes a configuration class instance for the LLM.
+        Initialize a base configuration class instance for the LLM.
 
-        :param model: Controls the OpenAI model used, defaults to None
-        :type model: Optional[str], optional
-        :param temperature:  Controls the randomness of the model's output.
-        Higher values (closer to 1) make output more random, lower values make it more deterministic, defaults to 0
-        :type temperature: float, optional
-        :param max_tokens: Controls how many tokens are generated, defaults to 3000
-        :type max_tokens: int, optional
-        :param top_p: Controls the diversity of words. Higher values (closer to 1) make word selection more diverse,
-        defaults to 1
-        :type top_p: float, optional
+        Args:
+            model: The model identifier to use (e.g., "gpt-5-mini", "claude-3-5-sonnet-20240620")
+                Defaults to None (will be set by provider-specific configs)
+            temperature: Controls the randomness of the model's output.
+                Higher values (closer to 1) make output more random, lower values make it more deterministic.
+                Range: 0.0 to 2.0. Defaults to 0.1
+            api_key: API key for the LLM provider. If None, will try to get from environment variables.
+                Defaults to None
+            max_tokens: Maximum number of tokens to generate in the response.
+                Range: 1 to 4096 (varies by model). Defaults to 2000
+            top_p: Nucleus sampling parameter. Controls diversity via nucleus sampling.
+                Higher values (closer to 1) make word selection more diverse.
+                Range: 0.0 to 1.0. Defaults to 0.1
+            top_k: Top-k sampling parameter. Limits the number of tokens considered for each step.
+                Higher values make word selection more diverse.
+                Range: 1 to 40. Defaults to 1
+            enable_vision: Whether to enable vision capabilities for the model.
+                Only applicable to vision-enabled models. Defaults to False
+            vision_details: Level of detail for vision processing.
+                Options: "low", "high", "auto". Defaults to "auto"
+            reasoning_effort: Effort level for reasoning models (e.g., o1, o3, gpt-5).
+                Options: "low", "medium", "high". Only applicable to reasoning models.
+                Defaults to None (uses the model's default reasoning effort)
+            http_client_proxies: Proxy settings for HTTP client.
+                Can be a dict or string. Defaults to None
+            is_reasoning_model: Explicit override for reasoning-model detection.
+                When None (default), the model is classified automatically from its
+                name (preserving existing behavior). Set to True to force the
+                reasoning-model parameter set (drop max_tokens and temperature),
+                or False to force the standard parameter set. Useful for
+                deployments with custom/versioned model names (e.g. Azure
+                "gpt-5.4-nano-2026-03-17") that the name-based heuristic cannot
+                recognize. Defaults to None
         """
-        
         self.model = model
         self.temperature = temperature
+        self.api_key = api_key
         self.max_tokens = max_tokens
         self.top_p = top_p
+        self.top_k = top_k
+        self.enable_vision = enable_vision
+        self.vision_details = vision_details
+        self.reasoning_effort = reasoning_effort
+        self.is_reasoning_model = is_reasoning_model
+        self.http_client_proxies = http_client_proxies
+        self.http_client = build_http_client(http_client_proxies)
